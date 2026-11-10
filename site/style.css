@@ -1,0 +1,82 @@
+:root {
+  --bg: #12141a;
+  --panel: #1c1f28;
+  --fg: #e8e8ee;
+  --muted: #9a9cab;
+  --accent: #5ad17a;
+  --accent-2: #f2b84b;
+  --danger: #e5604f;
+  --radius: 10px;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+
+a { color: var(--accent); }
+
+h1 { margin: 0 0 4px; font-size: 1.8rem; }
+.sub { margin: 0 0 24px; color: var(--muted); }
+
+.games {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.games a {
+  display: block;
+  padding: 16px;
+  background: var(--panel);
+  border-radius: var(--radius);
+  color: var(--fg);
+  text-decoration: none;
+  border: 1px solid transparent;
+}
+.games a:hover, .games a:focus-visible { border-color: var(--accent); }
+.games strong { display: block; font-size: 1.15rem; }
+.games span { color: var(--muted); font-size: 0.9rem; }
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.topbar a { text-decoration: none; }
+
+.hud {
+  display: flex;
+  gap: 16px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.hud b { color: var(--fg); }
+
+button {
+  font: inherit;
+  padding: 8px 16px;
+  background: var(--accent);
+  color: #0b0d10;
+  border: 0;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+button:hover { filter: brightness(1.1); }
+
+.hint { color: var(--muted); font-size: 0.9rem; }

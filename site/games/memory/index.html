@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Memory · DTG Games</title>
+  <link rel="stylesheet" href="../../style.css">
+  <style>
+    .board {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    .card {
+      aspect-ratio: 1;
+      padding: 0;
+      font-size: clamp(1.6rem, 8vw, 2.6rem);
+      background: var(--panel);
+      color: var(--fg);
+      border: 1px solid #2c303c;
+    }
+    .card.open { background: #2a3a30; }
+    .card.done { background: #1f3326; border-color: var(--accent); cursor: default; }
+    .status { text-align: center; min-height: 1.5em; margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="topbar">
+      <a href="../../">&larr; All games</a>
+      <div class="hud">
+        <span>Moves <b id="moves">0</b></span>
+        <span>Best <b id="best">–</b></span>
+      </div>
+    </div>
+    <div class="board" id="board"></div>
+    <p class="status" id="status"></p>
+    <p style="text-align:center"><button id="restart">New game</button></p>
+  </main>
+  <script src="memory.js"></script>
+</body>
+</html>

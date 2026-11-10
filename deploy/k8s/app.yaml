@@ -1,0 +1,42 @@
+# Minimal manifests for later. Replace OWNER with your GitHub user.
+# If the GHCR package stays private, add an imagePullSecret.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dtg
+  labels: { app: dtg }
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: dtg }
+  template:
+    metadata:
+      labels: { app: dtg }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+      containers:
+        - name: web
+          image: ghcr.io/OWNER/dtg:latest
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet: { path: /healthz, port: 8080 }
+          livenessProbe:
+            httpGet: { path: /healthz, port: 8080 }
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { memory: 64Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dtg
+spec:
+  selector: { app: dtg }
+  ports:
+    - port: 80
+      targetPort: 8080

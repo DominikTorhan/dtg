@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Snake · DTG Games</title>
+  <link rel="stylesheet" href="../../style.css">
+  <style>
+    canvas {
+      display: block;
+      width: 100%;
+      max-width: 480px;
+      aspect-ratio: 1;
+      margin: 0 auto;
+      background: var(--panel);
+      border-radius: var(--radius);
+      touch-action: none;
+    }
+    .controls { text-align: center; margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="topbar">
+      <a href="../../">&larr; All games</a>
+      <div class="hud">
+        <span>Score <b id="score">0</b></span>
+        <span>Best <b id="best">0</b></span>
+      </div>
+    </div>
+    <canvas id="board" width="480" height="480"></canvas>
+    <div class="controls">
+      <button id="start">Start</button>
+      <p class="hint">Arrow keys / WASD or swipe. Space to pause.</p>
+    </div>
+  </main>
+  <script src="snake.js"></script>
+</body>
+</html>
