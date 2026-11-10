@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Star Battle · DTG Games</title>
+  <link rel="stylesheet" href="../../style.css">
+  <style>
+    .options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .seg { display: inline-flex; border-radius: var(--radius); overflow: hidden; }
+    .seg button {
+      border-radius: 0;
+      background: var(--panel);
+      color: var(--muted);
+      padding: 6px 12px;
+    }
+    .seg button[aria-pressed="true"] { background: var(--accent); color: #0b0d10; }
+
+    .board {
+      --n: 8;
+      display: grid;
+      grid-template-columns: repeat(var(--n), 1fr);
+      width: 100%;
+      max-width: 520px;
+      aspect-ratio: 1;
+      margin: 0 auto;
+      border: 3px solid #050608;
+      border-radius: 4px;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .cell {
+      position: relative;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      border-radius: 0;
+      border: 1px solid rgba(0, 0, 0, 0.35);
+      color: var(--fg);
+      font-size: calc(min(520px, 100vw - 32px) / var(--n) * 0.55);
+      line-height: 1;
+      cursor: pointer;
+    }
+    .cell:hover { filter: brightness(1.15); }
+    .cell:focus-visible { outline: 2px solid var(--fg); outline-offset: -3px; }
+    .cell.t { border-top: 3px solid #050608; }
+    .cell.r { border-right: 3px solid #050608; }
+    .cell.b { border-bottom: 3px solid #050608; }
+    .cell.l { border-left: 3px solid #050608; }
+    .cell.dot::after, .cell.auto::after {
+      content: "";
+      width: 18%;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: rgba(10, 12, 16, 0.8);
+    }
+    .cell.auto::after { background: rgba(10, 12, 16, 0.3); }
+    .cell.star::after { content: "★"; color: #111318; }
+    .cell.err { box-shadow: inset 0 0 0 3px #ff2d2d, inset 0 0 0 6px rgba(255, 255, 255, 0.85); }
+    .cell.star.err::after { color: #fff; text-shadow: 0 0 3px #000; }
+    .board.solved .cell.star::after { animation: pop 0.4s ease-out both; }
+    @keyframes pop { from { transform: scale(0.4); } 60% { transform: scale(1.25); } to { transform: scale(1); } }
+
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 12px; }
+    .actions button.secondary { background: var(--panel); color: var(--fg); }
+    .actions label { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); }
+    .status { text-align: center; min-height: 1.5em; margin: 12px 0 0; }
+    details { margin-top: 20px; color: var(--muted); }
+    summary { cursor: pointer; color: var(--fg); }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="topbar">
+      <a href="../../">&larr; All games</a>
+      <div class="hud">
+        <span>Time <b id="time">0:00</b></span>
+        <span>Best <b id="best">–</b></span>
+      </div>
+    </div>
+
+    <div class="options">
+      <div class="seg" id="mode" role="group" aria-label="Mode">
+        <button data-mode="daily" aria-pressed="true">Daily</button>
+        <button data-mode="random" aria-pressed="false">Random</button>
+      </div>
+      <div class="seg" id="size" role="group" aria-label="Board size">
+        <button data-n="5">5</button>
+        <button data-n="6">6</button>
+        <button data-n="8">8</button>
+        <button data-n="10">10</button>
+      </div>
+    </div>
+
+    <div class="board" id="board" aria-label="Puzzle grid"></div>
+    <p class="status" id="status"></p>
+
+    <div class="actions">
+      <button class="secondary" id="undo">Undo</button>
+      <button class="secondary" id="clear">Clear</button>
+      <button id="new" hidden>New puzzle</button>
+      <label><input type="checkbox" id="autodots"> Auto-dots</label>
+    </div>
+
+    <details>
+      <summary>How to play</summary>
+      <p>Place one star in every row, every column and every coloured region.
+        Stars may not touch each other, not even diagonally.</p>
+      <p>Tap a cell to cycle: empty → dot → star. Dots are your own notes for
+        "no star here". Drag after placing a dot to mark several cells.
+        Right-click toggles a dot. Every puzzle has exactly one solution.</p>
+      <p>The daily puzzle is the same for everyone and changes at midnight.</p>
+    </details>
+  </main>
+  <script src="generator.js"></script>
+  <script src="starbattle.js"></script>
+</body>
+</html>
