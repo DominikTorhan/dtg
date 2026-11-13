@@ -62,3 +62,16 @@ make the package public or use an imagePullSecret in k8s).
 
 Edit `OWNER` in `deploy/k8s/app.yaml`, then `kubectl apply -f deploy/k8s/`.
 Add an Ingress for your cluster's controller to expose it.
+
+## Password gate
+
+Every page loads `site/gate.js`, which hides the page behind a single shared
+password until it has been entered once (remembered in `localStorage`).
+It is a casual lock, not security: the check runs in the browser and can be
+bypassed by anyone who reads the source.
+
+- New pages must include it right after the stylesheet:
+  `<script src="../../gate.js"></script>` (relative path).
+- Change the password: run `dtgGate.hash("new password")` in the browser
+  console and paste the result into `HASH` in `site/gate.js`.
+- Lock this browser again: `dtgGate.lock()` in the console.
