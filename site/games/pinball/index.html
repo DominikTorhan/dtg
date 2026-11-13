@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pinball · DTG Games</title>
+  <link rel="stylesheet" href="../../style.css">
+  <script src="../../gate.js"></script>
+  <style>
+    #table {
+      display: block;
+      height: min(72vh, 640px);
+      max-width: 100%;
+      aspect-ratio: 400 / 640;
+      margin: 0 auto;
+      background: var(--panel);
+      border-radius: var(--radius);
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .controls { text-align: center; margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="topbar">
+      <a href="../../">&larr; All games</a>
+      <div class="hud">
+        <span>Score <b id="score">0</b></span>
+        <span>Balls <b id="balls">3</b></span>
+        <span>Best <b id="best">0</b></span>
+      </div>
+    </div>
+    <canvas id="table" width="400" height="640"></canvas>
+    <div class="controls">
+      <button id="start">Start</button>
+      <p class="hint">Left flipper: &larr; / Z. Right flipper: &rarr; / M. Launch: Space or &darr;.
+        On touch: tap the left or right half of the table; tap to launch.</p>
+    </div>
+  </main>
+  <script src="pinball.js"></script>
+</body>
+</html>

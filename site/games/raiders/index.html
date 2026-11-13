@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sky Raiders · DTG Games</title>
+  <link rel="stylesheet" href="../../style.css">
+  <script src="../../gate.js"></script>
+  <style>
+    #field {
+      display: block;
+      width: 100%;
+      max-width: 480px;
+      aspect-ratio: 480 / 560;
+      margin: 0 auto;
+      background: #0b0d12;
+      border-radius: var(--radius);
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .controls { text-align: center; margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="topbar">
+      <a href="../../">&larr; All games</a>
+      <div class="hud">
+        <span>Score <b id="score">0</b></span>
+        <span>Lives <b id="lives">3</b></span>
+        <span>Wave <b id="wave">1</b></span>
+        <span>Best <b id="best">0</b></span>
+      </div>
+    </div>
+    <canvas id="field" width="480" height="560"></canvas>
+    <div class="controls">
+      <button id="start">Start</button>
+      <p class="hint">&larr; &rarr; / A D move, Space fire, P pause.
+        On touch: drag to move, the ship fires while you hold.</p>
+    </div>
+  </main>
+  <script src="raiders.js"></script>
+</body>
+</html>

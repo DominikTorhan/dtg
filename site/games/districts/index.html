@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Districts · DTG Games</title>
+  <link rel="stylesheet" href="../../style.css">
+  <script src="../../gate.js"></script>
+  <style>
+    .options { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .seg { display: inline-flex; border-radius: var(--radius); overflow: hidden; }
+    .seg button { border-radius: 0; background: var(--panel); color: var(--muted); padding: 6px 12px; }
+    .seg button[aria-pressed="true"] { background: var(--accent); color: #0b0d10; }
+
+    .board {
+      --n: 5;
+      display: grid;
+      grid-template-columns: repeat(var(--n), 1fr);
+      width: 100%;
+      max-width: 440px;
+      aspect-ratio: 1;
+      margin: 0 auto;
+      border: 3px solid #050608;
+      border-radius: 4px;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .cell {
+      position: relative;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      border-radius: 0;
+      border: 1px solid rgba(0, 0, 0, 0.3);
+      background: var(--panel);
+      cursor: pointer;
+    }
+    .cell::after {
+      content: "";
+      width: 42%;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: #e08a3c;
+    }
+    .cell.mine::after { background: #5ad17a; border-radius: 4px; transform: rotate(45deg) scale(0.85); }
+    .cell.d { background: #2a2f3c; }
+    .cell.d.cur { background: #3a4258; }
+    .cell.d.win { background: #2a4a33; }
+    .cell.d.lose { background: #4a3626; }
+    .cell.t { border-top: 3px solid #050608; }
+    .cell.r { border-right: 3px solid #050608; }
+    .cell.b { border-bottom: 3px solid #050608; }
+    .cell.l { border-left: 3px solid #050608; }
+    .tally { display: flex; gap: 16px; justify-content: center; margin-top: 12px; color: var(--muted); }
+    .tally b { color: var(--fg); }
+    .status { text-align: center; min-height: 1.5em; margin: 8px 0 0; }
+    .actions { display: flex; gap: 8px; justify-content: center; margin-top: 12px; }
+    .actions button.secondary { background: var(--panel); color: var(--fg); }
+    details { margin-top: 20px; color: var(--muted); }
+    summary { cursor: pointer; color: var(--fg); }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="topbar">
+      <a href="../../">&larr; All games</a>
+      <div class="hud">
+        <span>Won <b id="won">0</b></span>
+        <span>Best possible <b id="target">…</b></span>
+      </div>
+    </div>
+
+    <div class="options">
+      <div class="seg" id="mode" role="group" aria-label="Mode">
+        <button data-mode="daily" aria-pressed="true">Daily</button>
+        <button data-mode="random" aria-pressed="false">Random</button>
+      </div>
+      <div class="seg" id="size" role="group" aria-label="Board size">
+        <button data-n="5">5</button>
+        <button data-n="6">6</button>
+        <button data-n="7">7</button>
+      </div>
+    </div>
+
+    <div class="board" id="board" aria-label="Voter map"></div>
+    <div class="tally">
+      <span>Green voters <b id="share">0%</b></span>
+      <span>Majority needs <b id="need">3</b></span>
+    </div>
+    <p class="status" id="status"></p>
+
+    <div class="actions">
+      <button class="secondary" id="clear">Clear</button>
+      <button id="new" hidden>New map</button>
+    </div>
+
+    <details>
+      <summary>How to play</summary>
+      <p>You draw the map for the green ◆ party, which has fewer voters than orange ●.
+        Split the grid into equal districts of connected cells (as many districts
+        as the grid is wide). A district goes to whichever party has a strict majority in it.</p>
+      <p>Drag across cells to draw a district, or tap cells one by one next to the
+        district you are drawing. Tap a finished district to erase it.
+        Try to win as many districts as the best possible map.</p>
+      <p>The daily map is the same for everyone and changes at midnight.</p>
+    </details>
+  </main>
+  <script src="solver.js"></script>
+  <script src="districts.js"></script>
+</body>
+</html>

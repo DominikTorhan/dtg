@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Block Drop · DTG Games</title>
+  <link rel="stylesheet" href="../../style.css">
+  <script src="../../gate.js"></script>
+  <style>
+    .play { display: flex; gap: 12px; justify-content: center; align-items: flex-start; }
+    #board {
+      display: block;
+      height: min(70vh, 560px);
+      aspect-ratio: 1 / 2;
+      background: var(--panel);
+      border-radius: var(--radius);
+      touch-action: none;
+    }
+    .side { display: flex; flex-direction: column; gap: 8px; color: var(--muted); font-size: 0.9rem; }
+    #next { width: 72px; height: 72px; background: var(--panel); border-radius: var(--radius); }
+    .pad {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      max-width: 400px;
+      margin: 12px auto 0;
+    }
+    .pad button { padding: 14px 0; background: var(--panel); color: var(--fg); touch-action: manipulation; }
+    .controls { text-align: center; margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="topbar">
+      <a href="../../">&larr; All games</a>
+      <div class="hud">
+        <span>Score <b id="score">0</b></span>
+        <span>Lines <b id="lines">0</b></span>
+        <span>Best <b id="best">0</b></span>
+      </div>
+    </div>
+    <div class="play">
+      <canvas id="board" width="240" height="480"></canvas>
+      <div class="side">
+        <span>Next</span>
+        <canvas id="next" width="72" height="72"></canvas>
+        <span>Level <b id="level">1</b></span>
+      </div>
+    </div>
+    <div class="pad" aria-label="Touch controls">
+      <button data-act="left" aria-label="Move left">&#9664;</button>
+      <button data-act="rotate" aria-label="Rotate">&#10227;</button>
+      <button data-act="right" aria-label="Move right">&#9654;</button>
+      <button data-act="down" aria-label="Soft drop">&#9660;</button>
+      <button data-act="drop" aria-label="Hard drop">&#10515;</button>
+    </div>
+    <div class="controls">
+      <button id="start">Start</button>
+      <p class="hint">&larr; &rarr; move, &uarr; / X rotate, Z rotate back, &darr; soft drop, Space hard drop, P pause.</p>
+    </div>
+  </main>
+  <script src="blocks.js"></script>
+</body>
+</html>

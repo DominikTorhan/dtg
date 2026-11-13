@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fence the Sheep · DTG Games</title>
+  <link rel="stylesheet" href="../../style.css">
+  <script src="../../gate.js"></script>
+  <style>
+    .options { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+    .seg { display: inline-flex; border-radius: var(--radius); overflow: hidden; }
+    .seg button { border-radius: 0; background: var(--panel); color: var(--muted); padding: 6px 12px; }
+    .seg button[aria-pressed="true"] { background: var(--accent); color: #0b0d10; }
+    .fences { color: var(--muted); }
+    .fences b { color: var(--fg); }
+
+    .board {
+      --n: 13;
+      display: grid;
+      grid-template-columns: repeat(var(--n), 1fr);
+      width: 100%;
+      max-width: 520px;
+      aspect-ratio: 1;
+      margin: 0 auto;
+      border-radius: 6px;
+      overflow: hidden;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .cell {
+      position: relative;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      border-radius: 0;
+      border: 1px solid rgba(0, 0, 0, 0.18);
+      background: #3e6a35;
+      color: var(--fg);
+      font-size: calc(min(520px, 100vw - 32px) / var(--n) * 0.62);
+      line-height: 1;
+    }
+    .cell:hover { filter: brightness(1.15); }
+    .cell.water { background: #2f5f93; cursor: default; }
+    .cell.water:hover { filter: none; }
+    .cell.inside { background: #6a9a3c; }
+    .cell.fence::after {
+      content: "";
+      position: absolute;
+      inset: 18%;
+      background: #b0773e;
+      border-radius: 3px;
+      box-shadow: inset 0 0 0 2px #7a4f26;
+    }
+    .cell.path::before {
+      content: "";
+      position: absolute;
+      width: 22%;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: rgba(229, 96, 79, 0.85);
+    }
+    .board.won .cell.inside { background: #7fb24a; }
+    .status { text-align: center; min-height: 1.5em; margin: 12px 0 0; }
+    .actions { display: flex; gap: 8px; justify-content: center; margin-top: 12px; }
+    .actions button.secondary { background: var(--panel); color: var(--fg); }
+    details { margin-top: 20px; color: var(--muted); }
+    summary { cursor: pointer; color: var(--fg); }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="topbar">
+      <a href="../../">&larr; All games</a>
+      <div class="hud">
+        <span>Score <b id="score">–</b></span>
+        <span>Best <b id="best">–</b></span>
+      </div>
+    </div>
+
+    <div class="options">
+      <div class="seg" id="mode" role="group" aria-label="Mode">
+        <button data-mode="daily" aria-pressed="true">Daily</button>
+        <button data-mode="random" aria-pressed="false">Random</button>
+      </div>
+      <span class="fences">Fences left <b id="left">0</b></span>
+    </div>
+
+    <div class="board" id="board" aria-label="Pasture"></div>
+    <p class="status" id="status"></p>
+
+    <div class="actions">
+      <button class="secondary" id="clear">Clear</button>
+      <button id="new" hidden>New puzzle</button>
+    </div>
+
+    <details>
+      <summary>How to play</summary>
+      <p>The sheep 🐑 wanders anywhere it can walk (up, down, left, right) and
+        escapes if it can reach the edge of the map. Water stops it.</p>
+      <p>Tap grass to put down a fence, tap again to take it back. You have a
+        limited number of fences. Fence the sheep in with as much pasture as you can:
+        every enclosed tile is 1 point, and each clover 🍀 inside is worth 3 more.</p>
+      <p>While the sheep can still escape, red dots show one way out.
+        The daily puzzle is the same for everyone and changes at midnight.</p>
+    </details>
+  </main>
+  <script src="generator.js"></script>
+  <script src="fence.js"></script>
+</body>
+</html>
