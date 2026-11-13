@@ -41,38 +41,33 @@
 
   // ---------- sprites (pixel maps) ----------
 
+  // The hero: a small schoolboy with a big head and short legs, long hair
+  // under a knitted cap (czapka), a dark zipped jacket and a school backpack.
+  // 14x16, facing right; the backpack sits on his back.
   const PLAYER_TOP = [
-    "...kkkkk....",
-    "..khhhhhk...",
-    ".khhhhhhhk..",
-    ".kkkkkkkkkkk",
-    "..kssssksk..",
-    "..ksssssssk.",
-    "..kssssskk..",
-    "...kkkkkk...",
-    "..kbbbbbbk..",
-    ".kbbbbbbbbk.",
-    ".ksbbbbbbsk.",
-    "..kbbbbbbk..",
+    "......kwk.....",
+    ".....kcck.....",
+    "....kccccck...",
+    "...kCCCCCCCk..",
+    "...khhsssssk..",
+    "..khhhsswkssk.",
+    "..khhhssssssk.",
+    "..khhhsrsssk..",
+    "..khhhhkkkk...",
+    ".kbkhhjjzjjk..",
+    "kbbkhjjjzjjjk.",
+    "kbbBjjjjzjjsk.",
+    ".kkkjjjjzjjk..",
   ];
   const LEGS = {
-    stand: ["..kppppppk..", "..kppkkppk..", "..kffk.kffk.", "...kk...kk.."],
-    apart: ["..kppppppk..", ".kppk..kppk.", ".kffk...kffk", "..kk.....kk."],
-    close: ["..kppppppk..", "...kppppk...", "...kffffk...", "....kkkk...."],
+    stand: ["...kppkppk....", "...kffkffk....", "...kkkkkkk...."],
+    apart: ["..kppk.kppk...", "..kffk.kffk...", "..kkk...kkk..."],
+    close: ["....kpppk.....", "....kfffk.....", "....kkkkk....."],
   };
-  const PLAYER_PAL = { k: "#1a1420", h: "#d8402f", s: "#f2c79a", b: "#3a7fd5", p: "#2d3047", f: "#7a4a26" };
-
-  const CRAWLER = [
-    "....kkkk....",
-    "..kkccccckk.",
-    ".kccccccccck",
-    ".kcwwccwwcck",
-    ".kcwkccwkcck",
-    "kcccccccccck",
-    "kcddddddddck",
-    ".kkkkkkkkkk.",
-  ];
-  const CRAWLER_FEET = ["..kk.kk.kk..", "...kk.kk.kk."];
+  const PLAYER_PAL = {
+    k: "#1a1420", w: "#ffffff", c: "#c8302a", C: "#8a1f1a", h: "#5a3a22", s: "#f2c79a", r: "#e89a8a",
+    j: "#2a2e3a", z: "#8a90a0", b: "#e08a3c", B: "#a05a20", p: "#3a5a8a", f: "#f4f4f4",
+  };
 
   const COIN = [
     ["..kk..", ".kyyk.", "kyywyk", "kyyyyk", ".kyyk.", "..kk.."],
@@ -131,199 +126,31 @@
 
   function centered(s, y, scale, color) { text(s, Math.round((VW - textWidth(s, scale)) / 2), y, scale, color); }
 
-  // ---------- themes: parallax backgrounds and tiles ----------
+  // ---------- themes (see themes.js) ----------
 
-  // Sky in flat bands with a checkerboard dither between them (retro look).
-  function sky(g, w, colors) {
-    const band = VH / colors.length;
-    for (let y = 0; y < VH; y++) {
-      const i = Math.min(colors.length - 1, Math.floor(y / band));
-      const inBand = y - i * band;
-      const next = colors[i + 1];
-      if (next && inBand >= band - 3) {
-        for (let x = 0; x < w; x++) px(g, x, y, 1, 1, (x + y) % 2 ? next : colors[i]);
-      } else {
-        px(g, 0, y, w, 1, colors[i]);
+  const { THEMES, LW: LAYER_W } = PortalArt;
+
+  // Themes come in a shuffled deck per run: every theme once before any repeats.
+  let themeOrder = [];
+  function themeFor(stage) {
+    const rand = mulberry32(runSeed * 7 + 3 + themeOrder.length);
+    while (themeOrder.length < stage) {
+      const deck = THEMES.map((_, i) => i);
+      for (let i = deck.length - 1; i > 0; i--) {
+        const j = Math.floor(rand() * (i + 1));
+        [deck[i], deck[j]] = [deck[j], deck[i]];
       }
+      if (deck[0] === themeOrder[themeOrder.length - 1]) deck.push(deck.shift());
+      themeOrder.push(...deck);
     }
-  }
-
-  // A horizon line that wraps seamlessly across the layer width.
-  function ridge(w, base, amps, rand) {
-    const waves = amps.map((a, i) => ({ a, f: (i + 1) * (1 + Math.floor(rand() * 2)), p: rand() * 7 }));
-    return Array.from({ length: w }, (_, x) =>
-      Math.round(base + waves.reduce((s, v) => s + v.a * Math.sin((x / w) * Math.PI * 2 * v.f + v.p), 0)));
-  }
-
-  function fillBelow(g, line, color) { line.forEach((y, x) => px(g, x, y, 1, VH - y, color)); }
-
-  function pine(g, x, baseY, h, color, trunk) {
-    px(g, x - 1, baseY - 3, 2, 3, trunk);
-    for (let r = 0; r < h; r++) {
-      const half = Math.floor(((r % 5) + r * 0.6) / 2) + 1;
-      px(g, x - half, baseY - h - 3 + r, half * 2, 1, color);
-    }
-  }
-
-  const LAYER_W = 480;
-
-  const THEMES = [
-    {
-      name: "Forest",
-      layers(rand) {
-        const [far, gf] = offscreen(LAYER_W, VH);
-        sky(gf, LAYER_W, ["#7ec4e8", "#9fd4ee", "#bfe3f2", "#dff1f6"]);
-        px(gf, 380, 30, 14, 14, "#fff6d0"); px(gf, 378, 32, 18, 10, "#fff6d0"); px(gf, 382, 28, 10, 18, "#fff6d0");
-        const m = ridge(LAYER_W, 104, [16, 8, 4], rand);
-        fillBelow(gf, m, "#7a9cb8");
-        m.forEach((y, x) => { if (y < 96) px(gf, x, y, 1, 2, "#e8f0f4"); });
-        const [mid, gm] = offscreen(LAYER_W, VH);
-        const h1 = ridge(LAYER_W, 130, [6, 3], rand);
-        fillBelow(gm, h1, "#3f7a4f");
-        for (let x = 4; x < LAYER_W; x += 7 + Math.floor(rand() * 6)) pine(gm, x, h1[x] + 2, 14 + Math.floor(rand() * 10), "#2f6a40", "#2a3a2a");
-        const [near, gn] = offscreen(LAYER_W, VH);
-        const h2 = ridge(LAYER_W, 156, [5, 3], rand);
-        fillBelow(gn, h2, "#24543a");
-        for (let x = 10; x < LAYER_W; x += 18 + Math.floor(rand() * 20)) pine(gn, x, h2[x] + 2, 26 + Math.floor(rand() * 16), "#1d4a30", "#3a2a1e");
-        return [[far, 0.1], [mid, 0.3], [near, 0.55]];
-      },
-      tiles: { grass: "#5cae48", grassHi: "#8ad05a", dirt: "#7a4f2e", dirtDk: "#5e3a20", dirtLt: "#94653c" },
-      crawler: { k: "#1a1420", c: "#9a5fd1", d: "#6a3f9a", w: "#ffffff" },
-      deco: "flower",
-      portal: ["#7ef0c0", "#2fb08a"],
-    },
-    {
-      name: "City",
-      layers(rand) {
-        const [far, gf] = offscreen(LAYER_W, VH);
-        sky(gf, LAYER_W, ["#1a1438", "#2a1d4f", "#43286a", "#6a3a7a"]);
-        for (let i = 0; i < 70; i++) px(gf, Math.floor(rand() * LAYER_W), Math.floor(rand() * 90), 1, 1, rand() < 0.3 ? "#ffffff" : "#b0a8d8");
-        px(gf, 70, 24, 12, 12, "#f4eecf"); px(gf, 68, 26, 16, 8, "#f4eecf"); px(gf, 74, 24, 8, 8, "#2a1d4f");
-        const [mid, gm] = offscreen(LAYER_W, VH);
-        const [near, gn] = offscreen(LAYER_W, VH);
-        const block = (g, y0, hMin, hMax, wMin, wMax, body, lit, unlit, p) => {
-          for (let x = 0; x < LAYER_W;) {
-            const w = wMin + Math.floor(rand() * (wMax - wMin));
-            const h = hMin + Math.floor(rand() * (hMax - hMin));
-            const bw = Math.min(w, LAYER_W - x);
-            px(g, x, y0 - h, bw, VH, body);
-            if (rand() < 0.3) px(g, x + Math.floor(bw / 2), y0 - h - 6, 1, 6, body); // antenna
-            for (let wy = y0 - h + 4; wy < VH - 6; wy += p)
-              for (let wx = x + 3; wx < x + bw - 3; wx += p) px(g, wx, wy, 2, 2, rand() < 0.3 ? lit : unlit);
-            x += w + Math.floor(rand() * 4);
-          }
-        };
-        block(gm, 150, 40, 110, 18, 40, "#2e2a4a", "#e8c46a", "#3a3658", 5);
-        block(gn, 176, 30, 80, 24, 50, "#1c1a2e", "#f2d27a", "#25233a", 6);
-        return [[far, 0.05], [mid, 0.25], [near, 0.5]];
-      },
-      tiles: { grass: "#8a8d96", grassHi: "#b8bbc4", dirt: "#8a4a3a", dirtDk: "#5a2e24", dirtLt: "#c9b8a8" },
-      crawler: { k: "#1a1420", c: "#a8b0c0", d: "#6a7080", w: "#ff5a4a" },
-      deco: "lamp",
-      portal: ["#f2b84b", "#e5604f"],
-    },
-    {
-      name: "Desert",
-      layers(rand) {
-        const [far, gf] = offscreen(LAYER_W, VH);
-        sky(gf, LAYER_W, ["#f2a65a", "#f6be72", "#f8d490", "#fbe6b4"]);
-        for (let r = 22; r > 0; r--) {
-          const w = Math.round(Math.sqrt(22 * 22 - r * r));
-          px(gf, 240 - w, 70 - r, w * 2, 1, "#fff0b0");
-          px(gf, 240 - w, 70 + r, w * 2, 1, "#fff0b0");
-        }
-        px(gf, 218, 70, 44, 1, "#fff0b0");
-        // flat-topped mesas
-        for (let x = 0; x < LAYER_W;) {
-          const w = 30 + Math.floor(rand() * 50), h = 20 + Math.floor(rand() * 30);
-          px(gf, x + 4, 120 - h, w - 8, h + 80, "#c97a4a");
-          px(gf, x, 120 - h + 6, w, h + 80, "#c97a4a");
-          px(gf, x, 120 - h + 6, w, 2, "#a85e38");
-          x += w + 30 + Math.floor(rand() * 60);
-        }
-        const [mid, gm] = offscreen(LAYER_W, VH);
-        const d1 = ridge(LAYER_W, 140, [8, 4], rand);
-        fillBelow(gm, d1, "#e0b070");
-        d1.forEach((y, x) => px(gm, x, y, 1, 1, "#f0c888"));
-        const [near, gn] = offscreen(LAYER_W, VH);
-        const d2 = ridge(LAYER_W, 162, [6, 3], rand);
-        fillBelow(gn, d2, "#d09a58");
-        for (let x = 20; x < LAYER_W - 10; x += 40 + Math.floor(rand() * 60)) {
-          const y = d2[x], h = 14 + Math.floor(rand() * 10), c = "#4f7a3a";
-          px(gn, x, y - h, 4, h, c);
-          px(gn, x - 4, y - h + 6, 4, 2, c); px(gn, x - 4, y - h + 2, 2, 6, c);
-          px(gn, x + 4, y - h + 9, 4, 2, c); px(gn, x + 6, y - h + 4, 2, 7, c);
-        }
-        return [[far, 0.1], [mid, 0.3], [near, 0.5]];
-      },
-      tiles: { grass: "#e8c47a", grassHi: "#f6dc9c", dirt: "#c08a50", dirtDk: "#9a6a3a", dirtLt: "#d8a868" },
-      crawler: { k: "#1a1420", c: "#3a8a7a", d: "#26605a", w: "#f2e84b" },
-      deco: "cactus",
-      portal: ["#b07ef0", "#6a3fd1"],
-    },
-  ];
-
-  // Ground tiles: a "top" tile with a surface and a "fill" tile beneath it.
-  function makeTiles(theme, rand) {
-    const c = theme.tiles;
-    const [top, gt] = offscreen(T, T);
-    const [fill, gf] = offscreen(T, T);
-    const dirt = (g, y0) => {
-      px(g, 0, y0, T, T - y0, c.dirt);
-      for (let i = 0; i < 10; i++) px(g, Math.floor(rand() * T), y0 + Math.floor(rand() * (T - y0)), 2, 1, rand() < 0.5 ? c.dirtDk : c.dirtLt);
-    };
-    if (theme.name === "City") {
-      // bricks under a concrete slab
-      const bricks = (g, y0) => {
-        px(g, 0, y0, T, T - y0, c.dirt);
-        for (let y = y0; y < T; y += 4) {
-          px(g, 0, y, T, 1, c.dirtLt);
-          for (let x = ((y / 4) % 2) * 4; x < T; x += 8) px(g, x, y, 1, 4, c.dirtLt);
-        }
-        for (let i = 0; i < 4; i++) px(g, Math.floor(rand() * T), y0 + 1 + Math.floor(rand() * (T - y0 - 1)), 2, 1, c.dirtDk);
-      };
-      bricks(gf, 0);
-      bricks(gt, 5);
-      px(gt, 0, 0, T, 5, c.grass);
-      px(gt, 0, 0, T, 1, c.grassHi);
-      px(gt, 0, 4, T, 1, "#55585f");
-      px(gt, 7, 1, 1, 3, "#6a6d74");
-    } else {
-      dirt(gf, 0);
-      dirt(gt, 4);
-      px(gt, 0, 0, T, 4, c.grass);
-      px(gt, 0, 0, T, 1, c.grassHi);
-      for (let x = 0; x < T; x += 2) if (rand() < 0.6) px(gt, x, 4, 1, 1 + Math.floor(rand() * 2), c.grass);
-      if (theme.name === "Desert") for (let y = 6; y < T; y += 5) px(gt, 0, y, T, 1, c.dirtLt);
-    }
-    return { top, fill };
-  }
-
-  function drawDeco(kind, x, y, t) {
-    if (kind === "flower") {
-      px(ctx, x + 1, y - 4, 1, 4, "#2f6a40");
-      px(ctx, x, y - 6, 3, 2, t % 2 ? "#f2d24b" : "#e5604f");
-    } else if (kind === "lamp") {
-      px(ctx, x + 1, y - 20, 1, 20, "#3a3d48");
-      px(ctx, x - 1, y - 22, 5, 2, "#3a3d48");
-      px(ctx, x - 1, y - 20, 5, 1, "#ffe08a");
-      // dithered light cone, widening toward the ground
-      for (let i = 0; i < 19; i++) {
-        const half = 2 + Math.floor(i / 3);
-        for (let dx = -half; dx <= half; dx++) if ((dx + i) % 2 === 0) px(ctx, x + 1 + dx, y - 19 + i, 1, 1, "#ffe08a");
-      }
-    } else if (kind === "cactus") {
-      px(ctx, x + 1, y - 9, 2, 9, "#4f7a3a");
-      px(ctx, x - 1, y - 6, 2, 1, "#4f7a3a"); px(ctx, x - 1, y - 8, 1, 2, "#4f7a3a");
-      px(ctx, x + 3, y - 4, 2, 1, "#4f7a3a"); px(ctx, x + 4, y - 7, 1, 3, "#4f7a3a");
-    }
+    return THEMES[themeOrder[stage - 1]];
   }
 
   // ---------- level generation ----------
 
   function makeLevel(stage, runSeed) {
     const rand = mulberry32(runSeed * 977 + stage * 131);
-    const theme = THEMES[(stage - 1) % THEMES.length];
+    const theme = themeFor(stage);
     const diff = Math.min(1, (stage - 1) / 9);
     const L = Math.min(150, 70 + stage * 6);
     const height = new Array(L).fill(0); // ground height per column in tiles, 0 = pit
@@ -387,11 +214,11 @@
     for (const p of plats) for (let i = 0; i < p.w; i++) solid[ROWS - p.h][p.x + i] = 1;
 
     for (let col = 3; col < L - 6; col++) {
-      if (height[col] && rand() < 0.12) decos.push({ x: col * T + ri(2, 11), y: (ROWS - height[col]) * T });
+      if (height[col] && rand() < 0.12) decos.push({ x: col * T + ri(2, 11), y: (ROWS - height[col]) * T, kind: theme.deco[ri(0, theme.deco.length - 1)] });
     }
 
-    const tiles = makeTiles(theme, rand);
-    const layers = theme.layers(rand);
+    const tiles = PortalArt.makeTiles(theme.tile[0], theme.tile[1], rand);
+    const layers = theme.layers(PortalArt.toolkit(rand));
     const portal = { x: (L - 5) * T, y: (ROWS - h) * T - 32 };
     return { stage, theme, L, solid, coins, enemies, decos, tiles, layers, portal, startY: (ROWS - 3) * T - 16 };
   }
@@ -423,6 +250,7 @@
     level.portal.open = true;
     stageCoins = 0;
     particles = [];
+    initWeather(level.theme.weather);
     stageEl.textContent = n;
     coinsEl.textContent = coins;
     state = "title";
@@ -431,6 +259,7 @@
 
   function newRun() {
     runSeed = Math.floor(Math.random() * 1e9);
+    themeOrder = [];
     coins = 0;
     loadStage(1);
   }
@@ -518,7 +347,7 @@
         if (p.vy > 0 && p.y + p.h - p.vy <= e.y + 4) {
           e.alive = false;
           p.vy = keys.jump ? JUMP_V * 0.9 : -3.8;
-          burst(e.x + 6, e.y + 4, level.theme.crawler.c, 10);
+          burst(e.x + 6, e.y + 4, PortalArt.enemyFor(level.theme).pal.c, 10);
         } else {
           return die();
         }
@@ -559,6 +388,77 @@
     }
   }
 
+  // ---------- weather (screen-space particles, nudged by camera movement) ----------
+
+  const WEATHER = {
+    rain: { n: 90, color: ["#9ab0d0"], alpha: 0.6 },
+    storm: { n: 130, color: ["#9ab0d0"], alpha: 0.6 },
+    snow: { n: 70, color: ["#ffffff", "#dde8f4"], alpha: 0.9 },
+    embers: { n: 40, color: ["#ffb03a", "#f05a10", "#ffe08a"], alpha: 0.9 },
+    bubbles: { n: 30, color: ["#a0d8f0"], alpha: 0.7 },
+    leaves: { n: 25, color: ["#3a8a3a", "#6ab04a", "#c8a03a"], alpha: 1 },
+    autumn: { n: 30, color: ["#e8782a", "#c8402a", "#f0b03a", "#a0502a"], alpha: 1 },
+    petals: { n: 35, color: ["#f8c0d8", "#fde0ec", "#f0a0c0"], alpha: 1 },
+    sprinkles: { n: 40, color: ["#e5604f", "#f2c23b", "#3a7fd5", "#5ad17a", "#ffffff"], alpha: 1 },
+    confetti: { n: 40, color: ["#e5604f", "#f2c23b", "#3a7fd5", "#5ad17a", "#f070d0"], alpha: 1 },
+    bits: { n: 50, color: ["#3af07a", "#3af0f0"], alpha: 0.8 },
+    dust: { n: 45, color: ["#d8c8a0", "#b8a880"], alpha: 0.5 },
+    ash: { n: 55, color: ["#a8a8a8", "#7a7a7a"], alpha: 0.7 },
+    fireflies: { n: 22, color: ["#e8f070"], alpha: 1 },
+    spores: { n: 30, color: ["#f070d0", "#70f0f0"], alpha: 0.8 },
+  };
+  let weather = [], weatherKind = null, flash = 0, lastCam = null;
+
+  function initWeather(kind) {
+    weatherKind = WEATHER[kind] ? kind : null;
+    flash = 0;
+    lastCam = null;
+    const w = WEATHER[weatherKind];
+    weather = w ? Array.from({ length: w.n }, () => ({
+      x: Math.random() * VW, y: Math.random() * VH, s: Math.random(), p: Math.random() * 7,
+      c: w.color[Math.floor(Math.random() * w.color.length)],
+    })) : [];
+  }
+
+  function drawWeather(camX) {
+    if (!weatherKind) return;
+    const shift = lastCam === null ? 0 : camX - lastCam;
+    lastCam = camX;
+    const k = weatherKind, w = WEATHER[k], t = frame / 30;
+    ctx.globalAlpha = w.alpha;
+    for (const d of weather) {
+      if (!paused) {
+        d.x -= shift * (0.6 + d.s * 0.6);
+        if (k === "rain" || k === "storm") { d.x -= k === "storm" ? 1.6 : 0.6; d.y += 4 + d.s * 2; }
+        else if (k === "snow") { d.x += Math.sin(t + d.p) * 0.3; d.y += 0.3 + d.s * 0.4; }
+        else if (k === "embers" || k === "spores") { d.x += Math.sin(t + d.p) * 0.3; d.y -= 0.3 + d.s * 0.6; }
+        else if (k === "bubbles") { d.x += Math.sin(t * 2 + d.p) * 0.3; d.y -= 0.4 + d.s * 0.5; }
+        else if (k === "leaves" || k === "autumn" || k === "petals" || k === "sprinkles" || k === "confetti") { d.x += Math.sin(t + d.p) * 0.8 - 0.2; d.y += 0.4 + d.s * 0.4; }
+        else if (k === "bits") d.y += 0.8 + d.s * 1.6;
+        else if (k === "dust") { d.x += 0.8 + d.s * 1.2; d.y += Math.sin(t + d.p) * 0.2; }
+        else if (k === "ash") { d.x -= 0.3; d.y += 0.3 + d.s * 0.4; }
+        else if (k === "fireflies") { d.x += Math.sin(t * 0.7 + d.p) * 0.4; d.y += Math.cos(t * 0.9 + d.p) * 0.3; }
+        d.x = ((d.x % VW) + VW) % VW;
+        d.y = ((d.y % VH) + VH) % VH;
+      }
+      const x = Math.round(d.x), y = Math.round(d.y);
+      if (k === "rain" || k === "storm") { px(ctx, x, y, 1, 3, d.c); px(ctx, x - 1, y + 3, 1, 1, d.c); }
+      else if (k === "bubbles") { px(ctx, x, y, 2, 1, d.c); px(ctx, x - 1, y + 1, 1, 2, d.c); px(ctx, x + 2, y + 1, 1, 2, d.c); px(ctx, x, y + 3, 2, 1, d.c); }
+      else if (k === "leaves" || k === "autumn" || k === "petals") px(ctx, x, y, 2, 1, d.c);
+      else if (k === "sprinkles" || k === "confetti") px(ctx, x, y, (frame + d.p * 9) % 16 < 8 ? 2 : 1, (frame + d.p * 9) % 16 < 8 ? 1 : 2, d.c);
+      else if (k === "bits") px(ctx, x, y, 1, 2, d.c);
+      else if (k === "fireflies") { if (Math.sin(t * 3 + d.p * 3) > 0.2) px(ctx, x, y, 1, 1, d.c); }
+      else if (k === "embers") { if ((frame + d.p * 10) % 20 < 15) px(ctx, x, y, 1, 1, d.c); }
+      else px(ctx, x, y, 1, 1, d.c);
+    }
+    ctx.globalAlpha = 1;
+    if (k === "storm" && !paused) {
+      if (flash > 0) flash--;
+      else if (Math.random() < 0.004) flash = 8;
+      if (flash > 0) { ctx.globalAlpha = (flash / 8) * 0.5; px(ctx, 0, 0, VW, VH, "#e8ecff"); ctx.globalAlpha = 1; }
+    }
+  }
+
   // ---------- draw ----------
 
   function draw() {
@@ -579,7 +479,7 @@
         ctx.drawImage(img, c * T - camX, r * T);
       }
     }
-    for (const d of level.decos) if (d.x - camX > -20 && d.x - camX < VW + 20) drawDeco(level.theme.deco, d.x - camX, d.y, Math.floor(d.x / 7));
+    for (const d of level.decos) if (d.x - camX > -20 && d.x - camX < VW + 20) PortalArt.drawDeco(ctx, d.kind, d.x - camX, d.y, Math.floor(d.x / 7));
 
     const cf = Math.floor(frame / 8) % 4;
     for (const c of level.coins) {
@@ -589,18 +489,30 @@
 
     drawPortal(level.portal.x - camX, level.portal.y);
 
-    const crawler = level.crawlerSprites || (level.crawlerSprites = CRAWLER_FEET.map((f) => sprite(CRAWLER.concat([f]), level.theme.crawler)));
-    for (const e of level.enemies) if (e.alive) ctx.drawImage(crawler[Math.floor(frame / 10) % 2], Math.round(e.x - camX), Math.round(e.y - 1));
+    // Themed enemy: two walk frames, each also mirrored for the walking direction.
+    if (!level.enemySprites) {
+      const { kind, pal } = PortalArt.enemyFor(level.theme);
+      const def = PortalArt.ENEMIES[kind];
+      const frames = [def.rows, def.rows.slice(0, def.rows.length - def.b.length).concat(def.b)];
+      level.enemySprites = { hover: !!def.hover, h: def.rows.length, img: frames.map((f) => [sprite(f, pal), sprite(f, pal, true)]) };
+    }
+    const es = level.enemySprites;
+    for (const e of level.enemies) {
+      if (!e.alive) continue;
+      const bob = es.hover ? Math.round(Math.sin(frame / 12 + e.minX) * 2) - 3 : 0;
+      ctx.drawImage(es.img[Math.floor(frame / 10) % 2][e.dir > 0 ? 0 : 1], Math.round(e.x - camX), Math.round(e.y + 8 - es.h + bob));
+    }
 
     if (state !== "warp") {
       let legs = "stand";
       if (!p.ground) legs = "apart";
       else if (p.anim) legs = Math.floor(p.anim / 6) % 2 ? "apart" : "close";
       const img = playerSprites[legs][p.face];
-      if (state !== "dead" || frame % 4 < 2) ctx.drawImage(img, Math.round(p.x - 2 - camX), Math.round(p.y - 1));
+      if (state !== "dead" || frame % 4 < 2) ctx.drawImage(img, Math.round(p.x - 3 - camX), Math.round(p.y - 1));
     }
 
     for (const q of particles) px(ctx, q.x - camX, q.y, 2, 2, q.color);
+    drawWeather(camX);
 
     text(`STAGE ${level.stage}`, 4, 4, 1, "#ffffff");
     text(`COINS ${coins}`, VW - textWidth(`COINS ${coins}`, 1) - 4, 4, 1, "#f2c23b");
@@ -631,7 +543,7 @@
 
   function drawPortal(x, y) {
     const [c1, c2] = level.theme.portal;
-    const next = THEMES[level.stage % THEMES.length].portal[0];
+    const next = themeFor(level.stage + 1).portal[0];
     for (let r = 0; r < 6; r++) {
       const col = [c1, c2, next][(r + Math.floor(frame / 5)) % 3];
       const rx = 8 - r, ry = 16 - r * 2;
