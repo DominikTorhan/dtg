@@ -9,7 +9,7 @@
   const ctx = canvas.getContext("2d");
   ctx.imageSmoothingEnabled = false;
   const $ = (id) => document.getElementById(id);
-  const stageEl = $("stage"), coinsEl = $("coins"), bestEl = $("best");
+  const stageEl = $("stage"), bestEl = $("best");
 
   function safeGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
   function safeSet(k, v) { try { localStorage.setItem(k, v); } catch { /* ignore */ } }
@@ -69,12 +69,6 @@
     j: "#2a2e3a", z: "#8a90a0", b: "#e08a3c", B: "#a05a20", p: "#3a5a8a", f: "#f4f4f4",
   };
 
-  const COIN = [
-    ["..kk..", ".kyyk.", "kyywyk", "kyyyyk", ".kyyk.", "..kk.."],
-    ["..kk..", ".kyyk.", ".kywk.", ".kyyk.", ".kyyk.", "..kk.."],
-    ["..k...", "..ky..", "..ky..", "..ky..", "..ky..", "..k..."],
-  ];
-
   function sprite(rows, pal, flip = false) {
     const w = rows[0].length;
     const [c, g] = offscreen(w, rows.length);
@@ -93,7 +87,6 @@
     const rows = PLAYER_TOP.concat(LEGS[legs]);
     playerSprites[legs] = [sprite(rows, PLAYER_PAL), sprite(rows, PLAYER_PAL, true)];
   }
-  const coinSprites = COIN.map((f) => sprite(f, { k: "#7a4a10", y: "#f2c23b", w: "#fff6c0" }));
 
   // ---------- pixel font (3x5) ----------
 
@@ -154,7 +147,9 @@
     const diff = Math.min(1, (stage - 1) / 9);
     const L = Math.min(150, 70 + stage * 6);
     const height = new Array(L).fill(0); // ground height per column in tiles, 0 = pit
-    const plats = [], coins = [], enemies = [], decos = [];
+    const plats = [], enemies = [], hazards = [], decos = [];
+    // A static enemy sits on the ground at column col (needs room to jump it).
+    const hazard = (col, hh) => hazards.push({ x: col * T + 2, y: (ROWS - hh) * T });
     const ri = (a, b) => a + Math.floor(rand() * (b - a + 1));
     const flat = (x, len, h) => { for (let i = x; i < Math.min(L, x + len); i++) height[i] = h; };
 
@@ -168,7 +163,6 @@
         const nh = Math.max(2, Math.min(6, h + ri(-1, 1)));
         let gap = 2 + (rand() < 0.25 + diff * 0.5 ? 1 : 0);
         if (nh > h) gap = 2;
-        for (let i = 0; i < gap; i++) coins.push({ x: (x + i) * T + 5, y: (ROWS - Math.max(h, nh) - 3) * T + 5 });
         x += gap;
         h = nh;
         const len = ri(3, 6);
@@ -178,7 +172,6 @@
         // wide pit with a stepping stone
         const ph = Math.min(7, h + 1);
         plats.push({ x: x + 2, w: 2, h: ph });
-        coins.push({ x: (x + 2) * T + 5, y: (ROWS - ph - 1) * T + 5 }, { x: (x + 3) * T + 5, y: (ROWS - ph - 1) * T + 5 });
         x += 6;
         const len = ri(3, 5);
         flat(x, len, h);
@@ -192,17 +185,18 @@
         if (len >= 6 && rand() < 0.5) {
           const ph = Math.min(8, h + 3);
           plats.push({ x: x + 2, w: 3, h: ph });
-          for (let i = 0; i < 3; i++) coins.push({ x: (x + 2 + i) * T + 5, y: (ROWS - ph - 1) * T + 5 });
+        } else if (len >= 5 && rand() < 0.25 + diff * 0.35) {
+          hazard(x + Math.floor(len / 2), h); // never under a low platform: no headroom to jump it
         }
         x += len;
       } else {
-        // flat run, often guarded by a crawler
+        // flat run, guarded by a walking enemy or a static one
         const len = ri(6, 10);
         flat(x, len, h);
-        if (rand() < 0.45 + diff * 0.45) {
+        if (rand() < 0.5) {
           enemies.push({ x: (x + Math.floor(len / 2)) * T, y: (ROWS - h) * T - 8, minX: x * T, maxX: (x + len) * T - 12, dir: rand() < 0.5 ? -1 : 1, alive: true });
-        } else {
-          for (let i = 1; i < len - 1; i += 2) coins.push({ x: (x + i) * T + 5, y: (ROWS - h - 1) * T + 5 });
+        } else if (rand() < 0.6 + diff * 0.4) {
+          hazard(x + Math.floor(len / 2), h);
         }
         x += len;
       }
@@ -214,18 +208,19 @@
     for (const p of plats) for (let i = 0; i < p.w; i++) solid[ROWS - p.h][p.x + i] = 1;
 
     for (let col = 3; col < L - 6; col++) {
+      if (hazards.some((hz) => Math.floor(hz.x / T) === col)) continue;
       if (height[col] && rand() < 0.12) decos.push({ x: col * T + ri(2, 11), y: (ROWS - height[col]) * T, kind: theme.deco[ri(0, theme.deco.length - 1)] });
     }
 
     const tiles = PortalArt.makeTiles(theme.tile[0], theme.tile[1], rand);
     const layers = theme.layers(PortalArt.toolkit(rand));
     const portal = { x: (L - 5) * T, y: (ROWS - h) * T - 32 };
-    return { stage, theme, L, solid, coins, enemies, decos, tiles, layers, portal, startY: (ROWS - 3) * T - 16 };
+    return { stage, theme, L, solid, enemies, hazards, decos, tiles, layers, portal, startY: (ROWS - 3) * T - 16 };
   }
 
   // ---------- state ----------
 
-  let level, player, state, timer, frame, runSeed, coins, stageCoins, paused, particles;
+  let level, player, state, timer, frame, runSeed, paused, particles;
   let best = Number(safeGet(BEST_KEY)) || 0;
   bestEl.textContent = best || "–";
   const keys = { left: false, right: false, jump: false };
@@ -248,11 +243,21 @@
     level = makeLevel(n, runSeed);
     player = { x: 2 * T, y: level.startY, vx: 0, vy: 0, w: 8, h: 15, face: 0, ground: false, coyote: 0, anim: 0 };
     level.portal.open = true;
-    stageCoins = 0;
     particles = [];
     initWeather(level.theme.weather);
+    {
+      const { kind, pal } = PortalArt.staticFor(level.theme);
+      const def = PortalArt.STATICS[kind];
+      let alt = def.rows;
+      if (def.anim === "blink") alt = def.rows.map((r) => r.replace(/w/g, "c"));
+      else if (def.anim.startsWith("swap:")) {
+        const [a, b] = def.anim.slice(5);
+        alt = def.rows.map((r) => [...r].map((ch) => (ch === a ? b : ch === b ? a : ch)).join(""));
+      }
+      level.staticSprites = { anim: def.anim, h: def.rows.length, img: [sprite(def.rows, pal), sprite(alt, pal)] };
+      level.staticH = def.rows.length;
+    }
     stageEl.textContent = n;
-    coinsEl.textContent = coins;
     state = "title";
     timer = 100;
   }
@@ -260,7 +265,6 @@
   function newRun() {
     runSeed = Math.floor(Math.random() * 1e9);
     themeOrder = [];
-    coins = 0;
     loadStage(1);
   }
 
@@ -268,8 +272,6 @@
     state = "dead";
     timer = 60;
     player.vy = -4.5;
-    coins -= stageCoins;
-    coinsEl.textContent = coins;
   }
 
   function burst(x, y, color, n = 8) {
@@ -328,14 +330,9 @@
 
   function updateWorld() {
     const p = player;
-    for (const c of level.coins) {
-      if (!c.taken && Math.abs(p.x + 4 - (c.x + 3)) < 8 && Math.abs(p.y + 8 - (c.y + 3)) < 10) {
-        c.taken = true;
-        coins++;
-        stageCoins++;
-        coinsEl.textContent = coins;
-        burst(c.x + 3, c.y + 3, "#f2c23b", 5);
-      }
+    // Static enemies can't be stomped: any touch is fatal (slightly forgiving box).
+    for (const hz of level.hazards) {
+      if (p.x + p.w > hz.x + 3 && p.x < hz.x + 9 && p.y + p.h > hz.y - level.staticH + 3 && p.y < hz.y) return die();
     }
     for (const e of level.enemies) {
       if (!e.alive) continue;
@@ -481,10 +478,14 @@
     }
     for (const d of level.decos) if (d.x - camX > -20 && d.x - camX < VW + 20) PortalArt.drawDeco(ctx, d.kind, d.x - camX, d.y, Math.floor(d.x / 7));
 
-    const cf = Math.floor(frame / 8) % 4;
-    for (const c of level.coins) {
-      if (c.taken) continue;
-      ctx.drawImage(coinSprites[[0, 1, 2, 1][cf]], c.x - camX, c.y + (Math.floor(frame / 12 + c.x) % 2));
+    // Static enemies: two idle frames (blink / colour swap) or a 1px pulse.
+    const st = level.staticSprites;
+    for (const hz of level.hazards) {
+      const sx = hz.x - camX;
+      if (sx < -16 || sx > VW + 4) continue;
+      const blinkOn = st.anim === "blink" ? (frame + hz.x) % 150 < 8 : Math.floor((frame + hz.x) / 14) % 2 === 1;
+      const bob = st.anim === "pulse" && Math.floor((frame + hz.x) / 20) % 2 ? 1 : 0;
+      ctx.drawImage(st.img[blinkOn && st.anim !== "pulse" ? 1 : 0], Math.round(sx), hz.y - st.h + bob);
     }
 
     drawPortal(level.portal.x - camX, level.portal.y);
@@ -515,7 +516,6 @@
     drawWeather(camX);
 
     text(`STAGE ${level.stage}`, 4, 4, 1, "#ffffff");
-    text(`COINS ${coins}`, VW - textWidth(`COINS ${coins}`, 1) - 4, 4, 1, "#f2c23b");
 
     if (state === "title") {
       const a = Math.min(1, timer / 30);

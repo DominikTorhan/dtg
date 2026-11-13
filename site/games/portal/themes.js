@@ -1843,6 +1843,85 @@ var PortalArt = (() => {
     "Sky Islands": E("cloud", "#f2a0c0", "#d0709a", "#ffffff"),
   };
   const enemyFor = (theme) => ENEMY_FOR[theme.name] || E("beetle", "#9a5fd1", "#6a3f9a");
+  // ---------- static enemies: stay in place, can't be stomped ----------
+  // anim: "blink" (eyes close), "swap:xy" (swap two colours), "pulse" (bobs 1px).
+  const STATICS = {
+    thornbush: { anim: "blink", rows: [".k...k...k..", ".kk.kck.kk..", "..kcccccck..", ".kcdcccdcck.", "kccwkccwkcck", "kcdcccccdcck", "kakcdkkdckak", ".kcccdcccck.", "..kkkkkkkk.."] },
+    cactus: { anim: "blink", rows: ["....kkkk....", "...kcacck...", "...kcccck...", "kk.kcccck.kk", "kckkwccwkkck", "kcckcccckcck", ".kkkckkckkk.", "...kcccck...", "...kcdcck...", "..kkkkkkkk.."] },
+    urchin: { anim: "swap:dc", rows: ["..k..k..k...", "k..kkkkk..k.", ".kkcccccck..", "..kcwkcwkck.", "kkkccccccckk", "..kcdcdcdck.", ".kkcccccckk.", "k..kkkkkk..k", "..k..k..k..."] },
+    mine: { anim: "swap:ad", rows: [".....kk.....", ".....ka.....", "...kkkkkk...", "..kcccccck..", ".kcdcccccdk.", "kkkkkkkkkkkk", "kddddddddddk"] },
+    flame: { anim: "swap:ac", rows: ["....k.......", "...kak...k..", "...kaak.kak.", "..kacak.kak.", "..kacaakcak.", ".kacccacccak", ".kacwcccwcak", "kacckcccckak", "kacccccccak.", ".kkkkkkkkk.."] },
+    crystal: { anim: "blink", rows: ["...k....k...", "..kwk..kwk..", "..kck..kck..", ".kcck..kcck.", ".kcck.kccck.", "kcdck.kcdck.", "kcdckkkcdcck", "kcdccccdcdck", "kkkkkkkkkkkk"] },
+    spikes: { anim: "none", rows: ["..k...k...k.", ".kwk.kwk.kwk", ".kck.kck.kck", "kcdckcdckcdk", "kddddddddddk", "kakakakakaak", "kkkkkkkkkkkk"] },
+    flytrap: { anim: "pulse", rows: ["..kkk..kkk..", ".kcwkkkkwck.", "kccwcccwcck.", "kcccckkcccck", ".kccwkkwcck.", "..kkcaackk..", ".....kak....", "..kk.kak.kk.", ".kaakka.kaak", "..kk.kk..kk."] },
+    turret: { anim: "swap:ad", rows: ["....kkkk....", "...kcaack...", "..kcckkcck..", "..kcccccck..", ".kddddddddk.", "kcccccccccck", "kdkdkdkdkdkk"] },
+    glitch: { anim: "swap:ac", rows: ["kkkkkkkkkkkk", "kcacacacacak", "kacacacacack", "kcwkacacwkck", "kacacacacack", "kcacacacacak", "kkkkkkkkkkkk"] },
+    hedgehog: { anim: "blink", rows: ["...k.k.k....", "..kdkdkdk...", ".kdddddddk..", "kddddddddck.", "kdddddddcwk.", "kdddddcccckk", ".kkkkkkkkkk.", "..kk....kk.."] },
+    hand: { anim: "pulse", rows: ["....k.k.k...", "...kckckck..", "...kckckckk.", "...kccccccck", "...kcccccck.", "....kcccck..", "....kdddk...", "...kddddk...", ".kkdddddkk.."] },
+    snowman: { anim: "pulse", rows: ["....kkkk....", "....kddk....", "...kkkkkk...", "...kckcka...", "...kcccck...", "..kcccccck..", ".kcckcckcck.", ".kcccccccck.", "..kkkkkkkk.."] },
+    cupcake: { anim: "blink", rows: [".....ka.....", "....kaak....", "..kkcccckk..", ".kccwccwcck.", "kcccccccccck", "kdkdkdkdkdkk", ".kdkdkdkdkk.", "..kkkkkkkk.."] },
+    speaker: { anim: "pulse", rows: ["kkkkkkkkkkkk", "kcccccccccck", "kcdddccdddck", "kcdwdccdwdck", "kcdddccdddck", "kcccccccccck", "kccdddddddck", "kcccccccccck", "kkkkkkkkkkkk"] },
+    cone: { anim: "pulse", rows: [".....kk.....", "....kcck....", "....kwwk....", "...kcccck...", "...kckkck...", "..kwwwwwwk..", "..kcccccck..", ".kcccccccck.", "kkkkkkkkkkkk"] },
+    jackbox: { anim: "pulse", rows: ["....kkkk....", "...kwwwwk...", "...kwkkwk...", "...kwaawk...", "....kkkk....", ".....kk.....", "....k..k....", ".....kk.....", "..kkkkkkkk..", "..kcdcdcdk..", "..kdcdcdck..", "..kkkkkkkk.."] },
+    saw: { anim: "swap:wc", rows: ["...k.kk.k...", "..kwkwwkwk..", ".kwwccccwwk.", "kwwccddccwwk", ".kwccddccwk.", "kkkkkkkkkkkk", "kddddddddddk"] },
+    mushroom: { anim: "pulse", rows: ["...kkkkkk...", "..kcwcccwck.", ".kcccccccwck", "kcwcccccccck", "kkkkkkkkkkkk", "...kwwwwk...", "...kwkkwk...", "...kwwwwk...", "..kkkkkkkk.."] },
+  };
+
+  const SF = (kind, c, d, w = "#ffffff", a = "#f2c23b") => ({ kind, pal: { k: "#1a1420", c, d, w, a } });
+  const STATIC_FOR = {
+    "Forest": SF("thornbush", "#3a8a3a", "#2a6a2a", "#ffffff", "#c8e070"),
+    "City at Night": SF("cone", "#f06a1a", "#a04010"),
+    "Desert": SF("cactus", "#4f8a3a", "#3a6a2a", "#ffffff", "#f2a0c0"),
+    "English Village": SF("hedgehog", "#d8b890", "#6a4a30", "#ffffff"),
+    "Swamp": SF("flytrap", "#6a9a3a", "#4a6a2a", "#ffffff", "#d8402f"),
+    "Egypt": SF("spikes", "#d8b070", "#9a7a48", "#fff0c0", "#2a6ab0"),
+    "Alien World": SF("crystal", "#f070d0", "#a03a90", "#ffffff"),
+    "Rabbit Hole": SF("mushroom", "#d8402f", "#8a2a1a", "#f4ecd8"),
+    "Medieval Village": SF("spikes", "#8a8a90", "#5a5a60", "#d8d8e0", "#8a5a32"),
+    "Neo Tokyo": SF("turret", "#3a3a5a", "#22223a", "#ffffff", "#f070d0"),
+    "Renaissance Italy": SF("thornbush", "#3a6a30", "#2a4a20", "#ffffff", "#e5604f"),
+    "Hawaiian Islands": SF("urchin", "#6a3a8a", "#4a2a6a", "#ffffff"),
+    "Snowy Peaks": SF("snowman", "#f4f8fc", "#2a2a3a", "#ffffff", "#f06a1a"),
+    "Supermarket": SF("cone", "#f2c23b", "#b08a20"),
+    "Old European City": SF("spikes", "#3a3a40", "#2a2a30", "#9a9aa0", "#c8a050"),
+    "Savanna": SF("thornbush", "#8a7a30", "#5a4a20", "#ffffff", "#c8a050"),
+    "Ice Cave": SF("crystal", "#a0e0ff", "#5a9ac8", "#ffffff"),
+    "Deep Ocean": SF("urchin", "#2a2a4a", "#1a1a34", "#f2e84b"),
+    "Space Station": SF("turret", "#8a90a0", "#5a6070", "#ffffff", "#ff3a3a"),
+    "WWII Trenches": SF("mine", "#4a5a3a", "#2a3420", "#ffffff", "#ff3a3a"),
+    "Harbor": SF("mine", "#3a3a40", "#1a1a20", "#ffffff", "#ff3a3a"),
+    "Cyber World": SF("glitch", "#3af07a", "#1a6a3a", "#ffffff", "#f03a8a"),
+    "Rainforest": SF("flytrap", "#3a9a3a", "#2a6a2a", "#ffffff", "#f070d0"),
+    "Great Wall": SF("spikes", "#b0a890", "#6a6450", "#e8e0c8", "#d83a2a"),
+    "Stormy Suburbs": SF("hedgehog", "#c8b090", "#5a4a3a", "#ffffff"),
+    "Highway": SF("cone", "#f06a1a", "#a04010"),
+    "Concert Hall": SF("speaker", "#3a3a3a", "#1a1a1a", "#f8e8a0"),
+    "Mall Parking": SF("cone", "#f06a1a", "#a04010"),
+    "Inside the Volcano": SF("flame", "#ffb03a", "#a03a10", "#ffffff", "#f05a10"),
+    "Landslide": SF("spikes", "#8a7a5a", "#5a4a32", "#c8b898", "#4a3a2a"),
+    "Military Base": SF("mine", "#5a6a3a", "#3a4a2a", "#ffffff", "#ff3a3a"),
+    "Ancient Rome": SF("spikes", "#e0d4c0", "#9a8a70", "#ffffff", "#b0302a"),
+    "Wild West": SF("cactus", "#4f7a3a", "#3a5a2a", "#ffffff", "#e5604f"),
+    "Cyberpunk Megacity": SF("turret", "#22143a", "#120a20", "#ffffff", "#3af0f0"),
+    "Wasteland": SF("mine", "#7a4a2a", "#4a2a14", "#ffffff", "#c0f07e"),
+    "Autumn Woods": SF("thornbush", "#c8582a", "#8a3a1a", "#ffffff", "#f0b03a"),
+    "Cherry Blossoms": SF("thornbush", "#f0a8c8", "#c87898", "#ffffff", "#ffffff"),
+    "Windmill Fields": SF("hedgehog", "#d8c0a0", "#7a5a3a", "#ffffff"),
+    "Northern Lights": SF("crystal", "#3af0c0", "#1a8a7a", "#ffffff"),
+    "Moon Base": SF("turret", "#c8ccd4", "#8a8a90", "#ffffff", "#5ad17a"),
+    "Haunted Graveyard": SF("hand", "#8aa07a", "#3a3a48", "#ffffff"),
+    "Candy Land": SF("cupcake", "#f2a0c0", "#8a5a3a", "#ffffff", "#e5604f"),
+    "Lighthouse Coast": SF("urchin", "#3a2a4a", "#2a1a3a", "#ffffff"),
+    "Steel Factory": SF("flame", "#ffd03a", "#a04010", "#ffffff", "#f06a1a"),
+    "Pirate Cove": SF("urchin", "#4a2a5a", "#2a1a3a", "#f2c23b"),
+    "Jungle Temple": SF("spikes", "#8a8a6a", "#5a5a44", "#c8c8a0", "#3a8a3a"),
+    "Funfair": SF("jackbox", "#e5604f", "#3a7fd5", "#f4f4f4", "#e5604f"),
+    "Steampunk Skies": SF("saw", "#c8a050", "#6a4a2a", "#e8e0c8"),
+    "Grand Library": SF("flame", "#a0d0ff", "#3a5aa0", "#ffffff", "#5a7af0"),
+    "Sky Islands": SF("crystal", "#f4f8ff", "#a0c0e0", "#ffffff"),
+  };
+  const staticFor = (theme) => STATIC_FOR[theme.name] || SF("spikes", "#8a8a90", "#5a5a60");
+
 
   function drawCactus(g, x, y, s = 1) {
     const c = "#4f7a3a";
@@ -2031,5 +2110,5 @@ var PortalArt = (() => {
     for (let i = 0; i < h; i++) { const w = Math.round((halfW * (i + 1)) / h); px(g, cx - w, baseY - h + i, w * 2 + 1, 1, c); }
   }
 
-  return { THEMES, ENEMIES, enemyFor, toolkit, makeTiles, drawDeco, mulberry32, offscreen, px, LW };
+  return { THEMES, ENEMIES, enemyFor, STATICS, staticFor, toolkit, makeTiles, drawDeco, mulberry32, offscreen, px, LW };
 })();
