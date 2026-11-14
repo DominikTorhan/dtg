@@ -82,6 +82,27 @@
     return c;
   }
 
+  // Enemies are scaled up 4/3 (nearest neighbour) and get a 1px pale halo so
+  // they stand out against busy backgrounds. The halo adds 1px on every side.
+  const ES = 4 / 3, HALO = [255, 255, 255, 190];
+  function bigSprite(rows, pal, flip = false) {
+    const src = sprite(rows, pal, flip);
+    const W = Math.round(src.width * ES), H = Math.round(src.height * ES);
+    const [c, g] = offscreen(W + 2, H + 2);
+    g.drawImage(src, 1, 1, W, H);
+    const img = g.getImageData(0, 0, W + 2, H + 2), d = img.data, cw = W + 2, ch = H + 2;
+    const solid = (x, y) => x >= 0 && y >= 0 && x < cw && y < ch && d[(y * cw + x) * 4 + 3] > 200;
+    const halo = [];
+    for (let y = 0; y < ch; y++)
+      for (let x = 0; x < cw; x++)
+        if (!solid(x, y) && (solid(x - 1, y) || solid(x + 1, y) || solid(x, y - 1) || solid(x, y + 1))) halo.push((y * cw + x) * 4);
+    for (const i of halo) d.set(HALO, i);
+    g.putImageData(img, 0, 0);
+    c.h = H; // visible height without the halo
+    return c;
+  }
+  const EW = 16, EH = 11; // walking enemy hitbox
+
   const playerSprites = {};
   for (const legs of Object.keys(LEGS)) {
     const rows = PLAYER_TOP.concat(LEGS[legs]);
@@ -194,7 +215,7 @@
         const len = ri(6, 10);
         flat(x, len, h);
         if (rand() < 0.5) {
-          enemies.push({ x: (x + Math.floor(len / 2)) * T, y: (ROWS - h) * T - 8, minX: x * T, maxX: (x + len) * T - 12, dir: rand() < 0.5 ? -1 : 1, alive: true });
+          enemies.push({ x: (x + Math.floor(len / 2)) * T, y: (ROWS - h) * T - EH, minX: x * T, maxX: (x + len) * T - EW, dir: rand() < 0.5 ? -1 : 1, alive: true });
         } else if (rand() < 0.6 + diff * 0.4) {
           hazard(x + Math.floor(len / 2), h);
         }
@@ -254,8 +275,9 @@
         const [a, b] = def.anim.slice(5);
         alt = def.rows.map((r) => [...r].map((ch) => (ch === a ? b : ch === b ? a : ch)).join(""));
       }
-      level.staticSprites = { anim: def.anim, h: def.rows.length, img: [sprite(def.rows, pal), sprite(alt, pal)] };
-      level.staticH = def.rows.length;
+      const img = [bigSprite(def.rows, pal), bigSprite(alt, pal)];
+      level.staticSprites = { anim: def.anim, h: img[0].h, img };
+      level.staticH = img[0].h;
     }
     stageEl.textContent = n;
     state = "title";
@@ -332,19 +354,19 @@
     const p = player;
     // Static enemies can't be stomped: any touch is fatal (slightly forgiving box).
     for (const hz of level.hazards) {
-      if (p.x + p.w > hz.x + 3 && p.x < hz.x + 9 && p.y + p.h > hz.y - level.staticH + 3 && p.y < hz.y) return die();
+      if (p.x + p.w > hz.x + 2 && p.x < hz.x + 10 && p.y + p.h > hz.y - level.staticH + 3 && p.y < hz.y) return die();
     }
     for (const e of level.enemies) {
       if (!e.alive) continue;
       e.x += e.dir * (0.45 + Math.min(0.5, level.stage * 0.04));
       if (e.x < e.minX) { e.x = e.minX; e.dir = 1; }
       if (e.x > e.maxX) { e.x = e.maxX; e.dir = -1; }
-      const overlap = p.x < e.x + 11 && p.x + p.w > e.x + 1 && p.y < e.y + 8 && p.y + p.h > e.y + 1;
+      const overlap = p.x < e.x + EW - 1 && p.x + p.w > e.x + 1 && p.y < e.y + EH && p.y + p.h > e.y + 1;
       if (overlap) {
         if (p.vy > 0 && p.y + p.h - p.vy <= e.y + 4) {
           e.alive = false;
           p.vy = keys.jump ? JUMP_V * 0.9 : -3.8;
-          burst(e.x + 6, e.y + 4, PortalArt.enemyFor(level.theme).pal.c, 10);
+          burst(e.x + EW / 2, e.y + EH / 2, PortalArt.enemyFor(level.theme).pal.c, 10);
         } else {
           return die();
         }
@@ -399,7 +421,6 @@
     sprinkles: { n: 40, color: ["#e5604f", "#f2c23b", "#3a7fd5", "#5ad17a", "#ffffff"], alpha: 1 },
     confetti: { n: 40, color: ["#e5604f", "#f2c23b", "#3a7fd5", "#5ad17a", "#f070d0"], alpha: 1 },
     bits: { n: 50, color: ["#3af07a", "#3af0f0"], alpha: 0.8 },
-    dust: { n: 45, color: ["#d8c8a0", "#b8a880"], alpha: 0.5 },
     ash: { n: 55, color: ["#a8a8a8", "#7a7a7a"], alpha: 0.7 },
     fireflies: { n: 22, color: ["#e8f070"], alpha: 1 },
     spores: { n: 30, color: ["#f070d0", "#70f0f0"], alpha: 0.8 },
@@ -432,7 +453,6 @@
         else if (k === "bubbles") { d.x += Math.sin(t * 2 + d.p) * 0.3; d.y -= 0.4 + d.s * 0.5; }
         else if (k === "leaves" || k === "autumn" || k === "petals" || k === "sprinkles" || k === "confetti") { d.x += Math.sin(t + d.p) * 0.8 - 0.2; d.y += 0.4 + d.s * 0.4; }
         else if (k === "bits") d.y += 0.8 + d.s * 1.6;
-        else if (k === "dust") { d.x += 0.8 + d.s * 1.2; d.y += Math.sin(t + d.p) * 0.2; }
         else if (k === "ash") { d.x -= 0.3; d.y += 0.3 + d.s * 0.4; }
         else if (k === "fireflies") { d.x += Math.sin(t * 0.7 + d.p) * 0.4; d.y += Math.cos(t * 0.9 + d.p) * 0.3; }
         d.x = ((d.x % VW) + VW) % VW;
@@ -482,10 +502,11 @@
     const st = level.staticSprites;
     for (const hz of level.hazards) {
       const sx = hz.x - camX;
-      if (sx < -16 || sx > VW + 4) continue;
+      if (sx < -20 || sx > VW + 4) continue;
       const blinkOn = st.anim === "blink" ? (frame + hz.x) % 150 < 8 : Math.floor((frame + hz.x) / 14) % 2 === 1;
       const bob = st.anim === "pulse" && Math.floor((frame + hz.x) / 20) % 2 ? 1 : 0;
-      ctx.drawImage(st.img[blinkOn && st.anim !== "pulse" ? 1 : 0], Math.round(sx), hz.y - st.h + bob);
+      // hz.x is 2px into its 16px column; the scaled sprite fills the column (+1px halo).
+      ctx.drawImage(st.img[blinkOn && st.anim !== "pulse" ? 1 : 0], Math.round(sx) - 3, hz.y - st.h - 1 + bob);
     }
 
     drawPortal(level.portal.x - camX, level.portal.y);
@@ -495,13 +516,14 @@
       const { kind, pal } = PortalArt.enemyFor(level.theme);
       const def = PortalArt.ENEMIES[kind];
       const frames = [def.rows, def.rows.slice(0, def.rows.length - def.b.length).concat(def.b)];
-      level.enemySprites = { hover: !!def.hover, h: def.rows.length, img: frames.map((f) => [sprite(f, pal), sprite(f, pal, true)]) };
+      const img = frames.map((f) => [bigSprite(f, pal), bigSprite(f, pal, true)]);
+      level.enemySprites = { hover: !!def.hover, h: img[0][0].h, img };
     }
     const es = level.enemySprites;
     for (const e of level.enemies) {
       if (!e.alive) continue;
       const bob = es.hover ? Math.round(Math.sin(frame / 12 + e.minX) * 2) - 3 : 0;
-      ctx.drawImage(es.img[Math.floor(frame / 10) % 2][e.dir > 0 ? 0 : 1], Math.round(e.x - camX), Math.round(e.y + 8 - es.h + bob));
+      ctx.drawImage(es.img[Math.floor(frame / 10) % 2][e.dir > 0 ? 0 : 1], Math.round(e.x - camX) - 1, Math.round(e.y + EH - es.h - 1 + bob));
     }
 
     if (state !== "warp") {

@@ -1169,7 +1169,6 @@ var PortalArt = (() => {
     },
     {
       name: "Landslide",
-      weather: "dust",
       layers(k) {
         const far = k.layer((g) => {
           k.sky(g, ["#a89a80", "#b8aa90", "#c8baa0", "#d8cab0"]);
@@ -1240,7 +1239,6 @@ var PortalArt = (() => {
     },
     {
       name: "Wild West",
-      weather: "dust",
       layers(k) {
         const far = k.layer((g) => {
           k.sky(g, ["#f0905a", "#f4a870", "#f6c490", "#f8dcb0"]);
