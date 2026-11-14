@@ -82,12 +82,13 @@
     return c;
   }
 
-  // Enemies are scaled up 4/3 (nearest neighbour) and get a 1px pale halo so
-  // they stand out against busy backgrounds. The halo adds 1px on every side.
-  const ES = 4 / 3, HALO = [255, 255, 255, 190];
-  function bigSprite(rows, pal, flip = false) {
+  // Enemies are scaled up (walkers 2x, statics 2x wide / 3x tall) and get a
+  // 1px pale halo so they stand out against busy backgrounds. The halo adds
+  // 1px on every side.
+  const HALO = [255, 255, 255, 190];
+  function bigSprite(rows, pal, flip = false, sx = 2, sy = 2) {
     const src = sprite(rows, pal, flip);
-    const W = Math.round(src.width * ES), H = Math.round(src.height * ES);
+    const W = src.width * sx, H = src.height * sy;
     const [c, g] = offscreen(W + 2, H + 2);
     g.drawImage(src, 1, 1, W, H);
     const img = g.getImageData(0, 0, W + 2, H + 2), d = img.data, cw = W + 2, ch = H + 2;
@@ -101,7 +102,7 @@
     c.h = H; // visible height without the halo
     return c;
   }
-  const EW = 16, EH = 11; // walking enemy hitbox
+  const EW = 24, EH = 16; // walking enemy hitbox
 
   const playerSprites = {};
   for (const legs of Object.keys(LEGS)) {
@@ -275,7 +276,7 @@
         const [a, b] = def.anim.slice(5);
         alt = def.rows.map((r) => [...r].map((ch) => (ch === a ? b : ch === b ? a : ch)).join(""));
       }
-      const img = [bigSprite(def.rows, pal), bigSprite(alt, pal)];
+      const img = [bigSprite(def.rows, pal, false, 2, 3), bigSprite(alt, pal, false, 2, 3)];
       level.staticSprites = { anim: def.anim, h: img[0].h, img };
       level.staticH = img[0].h;
     }
@@ -354,7 +355,7 @@
     const p = player;
     // Static enemies can't be stomped: any touch is fatal (slightly forgiving box).
     for (const hz of level.hazards) {
-      if (p.x + p.w > hz.x + 2 && p.x < hz.x + 10 && p.y + p.h > hz.y - level.staticH + 3 && p.y < hz.y) return die();
+      if (p.x + p.w > hz.x - 2 && p.x < hz.x + 14 && p.y + p.h > hz.y - level.staticH + 3 && p.y < hz.y) return die();
     }
     for (const e of level.enemies) {
       if (!e.alive) continue;
@@ -502,11 +503,11 @@
     const st = level.staticSprites;
     for (const hz of level.hazards) {
       const sx = hz.x - camX;
-      if (sx < -20 || sx > VW + 4) continue;
+      if (sx < -30 || sx > VW + 8) continue;
       const blinkOn = st.anim === "blink" ? (frame + hz.x) % 150 < 8 : Math.floor((frame + hz.x) / 14) % 2 === 1;
       const bob = st.anim === "pulse" && Math.floor((frame + hz.x) / 20) % 2 ? 1 : 0;
-      // hz.x is 2px into its 16px column; the scaled sprite fills the column (+1px halo).
-      ctx.drawImage(st.img[blinkOn && st.anim !== "pulse" ? 1 : 0], Math.round(sx) - 3, hz.y - st.h - 1 + bob);
+      // hz.x is 2px into its 16px column; the 24px sprite is centred on the column (+1px halo).
+      ctx.drawImage(st.img[blinkOn && st.anim !== "pulse" ? 1 : 0], Math.round(sx) - 7, hz.y - st.h - 1 + bob);
     }
 
     drawPortal(level.portal.x - camX, level.portal.y);
@@ -574,7 +575,7 @@
         px(ctx, x + 8 + Math.cos(t) * rx, y + 16 + Math.sin(t) * ry, 1, 1, col);
       }
     }
-    if (frame % 3 === 0) particles.push({ x: x + 8 + (Math.random() - 0.5) * 14, y: y + 30, vx: 0, vy: -0.6 - Math.random(), t: 25, color: c1 });
+    if (frame % 3 === 0) particles.push({ x: level.portal.x + 8 + (Math.random() - 0.5) * 14, y: y + 30, vx: 0, vy: -0.6 - Math.random(), t: 25, color: c1 });
   }
 
   // ---------- loop (fixed 60 Hz steps) ----------
